@@ -1,3 +1,7 @@
 Release/
 Debug/
 .vs
+bin/
+obj
+*pubxml
+*pubxml.user
