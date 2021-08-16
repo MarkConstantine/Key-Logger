@@ -61,7 +61,7 @@ int Save(int key_stroke)
             char s[64];
             strftime(s, sizeof(s), "%Y-%m-%d %H:%M:%S", &tm);
 
-            output << "\n[" << s << ": " << window_title << "]\n";
+            output << "\n[" << s << ": " << window_title << "]\n\n";
         }
     }
     int form = FORMAT;
