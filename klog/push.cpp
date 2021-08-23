@@ -2,21 +2,22 @@
 
 DWORD WINAPI PushThread(LPVOID lpParam)
 {
-    DWORD dwSleepMs = (DWORD)lpParam;
-    // TODO: IP, Port params
-    const std::wstring ip = L"***REMOVED***";
-    const int port = 25666;
+    PUSH_PARAMS* params = (PUSH_PARAMS*)lpParam;
+
+    _RPT1(_CRT_WARN, "Push IP: %ws\n", params->lpszIpAddress);
+    _RPT1(_CRT_WARN, "Push Port: %d\n", params->wPort);
+    _RPT1(_CRT_WARN, "Push Period: %d\n", params->dwPushPeriodMs);
 
     while (true)
     {
         _RPT0(_CRT_WARN, L"> PushThread\n");
-        auto status = Push(ip, port);
+        DWORD status = Push(params->lpszIpAddress, params->wPort);
         _RPT3(_CRT_WARN, "< PushThread = %d\n", status);
-        Sleep(dwSleepMs);
+        Sleep(params->dwPushPeriodMs);
     }
 }
 
-DWORD Push(const std::wstring& ip, int port)
+DWORD Push(LPCWSTR lpszIpAddress, WORD wPort)
 {
     HINTERNET hSession = INVALID_HANDLE_VALUE;
     HINTERNET hConnect = INVALID_HANDLE_VALUE;
@@ -39,11 +40,7 @@ DWORD Push(const std::wstring& ip, int port)
         goto done;
     }
 
-    hConnect = WinHttpConnect(
-        hSession,
-        ip.c_str(), // IP
-        port, // Port
-        0);
+    hConnect = WinHttpConnect(hSession, lpszIpAddress, wPort, 0);
     if (!hConnect)
     {
         _RPT1(_CRT_WARN, "WinHttpConnect Error %u\n", GetLastError());

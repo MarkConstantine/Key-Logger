@@ -3,5 +3,12 @@
 #include <winhttp.h>
 #include <iostream>
 
+struct PUSH_PARAMS
+{
+    LPCWSTR lpszIpAddress;
+    WORD wPort;
+    DWORD dwPushPeriodMs;
+};
+
 DWORD WINAPI PushThread(LPVOID lpParam);
-DWORD Push(const std::wstring& ip, int port);
+DWORD Push(LPCWSTR ip, WORD port);
