@@ -1,5 +1,7 @@
 Release/
 Debug/
+Stage/
+Output/
 .vs
 bin/
 obj

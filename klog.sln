@@ -7,12 +7,19 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "klog", "klog\klog.vcxproj",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "klog-listener", "klog-listener\klog-listener.csproj", "{B31ED5FB-C408-47C6-BE89-119A958872B4}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C1D3C312-4610-41D5-BAB4-04DF80733F47}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|x86 = Debug|x86
 		Release|Any CPU = Release|Any CPU
 		Release|x86 = Release|x86
+		Stage|Any CPU = Stage|Any CPU
+		Stage|x86 = Stage|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{A28B38A5-BEC5-4C75-B8E0-F23A7C445333}.Debug|Any CPU.ActiveCfg = Debug|Win32
@@ -21,6 +28,10 @@ Global
 		{A28B38A5-BEC5-4C75-B8E0-F23A7C445333}.Release|Any CPU.ActiveCfg = Release|Win32
 		{A28B38A5-BEC5-4C75-B8E0-F23A7C445333}.Release|x86.ActiveCfg = Release|Win32
 		{A28B38A5-BEC5-4C75-B8E0-F23A7C445333}.Release|x86.Build.0 = Release|Win32
+		{A28B38A5-BEC5-4C75-B8E0-F23A7C445333}.Stage|Any CPU.ActiveCfg = Stage|x64
+		{A28B38A5-BEC5-4C75-B8E0-F23A7C445333}.Stage|Any CPU.Build.0 = Stage|x64
+		{A28B38A5-BEC5-4C75-B8E0-F23A7C445333}.Stage|x86.ActiveCfg = Stage|Win32
+		{A28B38A5-BEC5-4C75-B8E0-F23A7C445333}.Stage|x86.Build.0 = Stage|Win32
 		{B31ED5FB-C408-47C6-BE89-119A958872B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B31ED5FB-C408-47C6-BE89-119A958872B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B31ED5FB-C408-47C6-BE89-119A958872B4}.Debug|x86.ActiveCfg = Debug|Any CPU
@@ -29,6 +40,10 @@ Global
 		{B31ED5FB-C408-47C6-BE89-119A958872B4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B31ED5FB-C408-47C6-BE89-119A958872B4}.Release|x86.ActiveCfg = Release|Any CPU
 		{B31ED5FB-C408-47C6-BE89-119A958872B4}.Release|x86.Build.0 = Release|Any CPU
+		{B31ED5FB-C408-47C6-BE89-119A958872B4}.Stage|Any CPU.ActiveCfg = Stage|Any CPU
+		{B31ED5FB-C408-47C6-BE89-119A958872B4}.Stage|Any CPU.Build.0 = Stage|Any CPU
+		{B31ED5FB-C408-47C6-BE89-119A958872B4}.Stage|x86.ActiveCfg = Debug|Any CPU
+		{B31ED5FB-C408-47C6-BE89-119A958872B4}.Stage|x86.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
