@@ -223,7 +223,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="keys.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="push.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="keys.h" />
+    <ClInclude Include="push.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
