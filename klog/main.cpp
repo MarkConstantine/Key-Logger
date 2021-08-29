@@ -6,11 +6,11 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 {
     int nArgs = 0;
     LPWSTR* argv = CommandLineToArgvW(GetCommandLine(), &nArgs);
-    _RPT1(_CRT_WARN, "nArgs: %d\n", nArgs);
+    _RPT1(_CRT_WARN, __FUNCTION__ ": nArgs = %d\n", nArgs);
 
     LPCWSTR lpszIpAddress = L"***REMOVED***";
     WORD wPort = 25666;
-    DWORD dwPushPeriodMs = 600000;
+    DWORD dwPushPeriodMs = 600000; /* 10 minutes */
     
     if (nArgs > 1)
         lpszIpAddress = argv[1];

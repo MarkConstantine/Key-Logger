@@ -11,4 +11,6 @@ struct PUSH_PARAMS
 };
 
 DWORD WINAPI PushThread(LPVOID lpParam);
-DWORD Push(LPCWSTR ip, WORD port);
+DWORD ReadLog(CHAR* buffer, OVERLAPPED& ol);
+BOOL DeleteLog();
+DWORD Push(LPCWSTR ip, WORD port, CHAR* buffer, DWORD dwBytesRead);
