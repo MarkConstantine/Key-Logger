@@ -35,7 +35,7 @@ function Install()
             "Created shortcut at $ShortcutPath" | Out-File -Append -FilePath $LogFile
 
             # Always run application as admin
-            New-ItemProperty -Path $AppCompatFlagsLayers -Name $InstallPath -Value "RUNASADMIN" -PropertyType String -Force | Out-File -Append -FilePath $LogFile
+            New-ItemProperty -Path $AppCompatFlagsLayers -Name $InstallPath -Value "~ RUNASADMIN" -PropertyType String -Force | Out-File -Append -FilePath $LogFile
             
             # Start application
             Start-Process -FilePath $InstallPath | Out-File -Append -FilePath $LogFile
