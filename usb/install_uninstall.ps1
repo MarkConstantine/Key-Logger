@@ -32,7 +32,7 @@ function Install()
             # Create task in task scheduler
             $action = New-ScheduledTaskAction -Execute $InstallPath
             $trigger = New-ScheduledTaskTrigger -AtLogOn
-            $principle = New-ScheduledTaskPrincipal -UserId "SYSTEM" -RunLevel Highest
+            $principle = New-ScheduledTaskPrincipal -UserId (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -expand UserName) -RunLevel Highest
             $settings = New-ScheduledTaskSettingsSet -DontStopIfGoingOnBatteries
             $task = New-ScheduledTask -Action $action -Principal $principle -Trigger $trigger -Settings $settings
             Register-ScheduledTask $App -InputObject $task
