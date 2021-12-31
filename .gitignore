@@ -7,3 +7,5 @@ bin/
 obj
 *pubxml
 *pubxml.user
+*csproj.user
+*vcxproj.user
